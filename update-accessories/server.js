@@ -10,7 +10,7 @@ const app = express();
 const port = 3014;
 
 app.use(cors({
-  origin: 'htt://localhost:3000/'
+  origin: 'http://veterinary-balance-1049781827.us-east-2.elb.amazonaws.com'
 }));
 
 app.use(bodyParser.json());
