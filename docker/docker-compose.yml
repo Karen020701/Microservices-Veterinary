@@ -1,0 +1,74 @@
+version: "3.9"
+services:
+  create-accesories:
+   build: ../create-accesories
+   ports:
+     - 8070:3007
+  create-food:
+   build: ../create-food
+   ports:
+     - 8071:3003
+  create-medicines:
+   build: ../create-medicines
+   ports:
+     - 8072:3009
+  create-service:
+   build: ../create-service
+   ports:
+     - 8073:3016
+  create-toys:
+   build: ../create-toys
+   ports:
+     - 8074:3005
+  create-user:
+   build: ../create-user
+   ports:
+     - 8075:3001
+  create-veterinary:
+   build: ../create-veterinary
+   ports:
+     - 8076:3002
+  get_accesories:
+   build: ../get_accesories
+   ports:
+     - 8077:3008
+  get_food:
+   build: ../get_food
+   ports:
+     - 8078:3004
+  get_toys:
+   build: ../get_toys
+   ports:
+     - 8079:3006
+  list-medicines:
+   build: ../list-medicines
+   ports:
+     - 8080:3020
+  update-accessories:
+   build: ../update-accessories
+   ports:
+     - 8081:3014
+  update-medicines:
+   build: ../update-medicines
+   ports:
+     - 8082:3015
+  update-pet-food:
+   build: ../update-pet-food
+   ports:
+     - 8083:3012
+  update-toys:
+   build: ../update-toys
+   ports:
+     - 8084:3013
+  view-branches:
+   build: ../view-branches
+   ports:
+     - 8085:3010
+  view-schedules:
+   build: ../view-schedules
+   ports:
+     - 8086:3011
+  view-services:
+   build: ../view-services
+   ports:
+     - 8087:3017

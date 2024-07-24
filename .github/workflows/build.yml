@@ -1,0 +1,138 @@
+name: Build and Push Docker Images 
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Sign in to Docker Hub
+      uses: docker/login-action@v2
+      with:
+        username: ${{ secrets.DOCKERHUB_USERNAME }}
+        password: ${{ secrets.DOCKERHUB_TOKEN }}
+        
+    - name: Build and upload Docker images
+      run: |
+        services=("create-accesories" "create-food" "create-medicines" "create-service" "create-toys" "create-user" "create-veterinary" "get_accesories" "get_food" "get_toys" "list-medicines" "update-accessories" "update-medicines" "update-pet-food" "update-toys" "view-branches" "view-schedules" "view-services")
+        
+        for service in "${services[@]}"
+        do
+          if [ -d "$service" ]; then
+            docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/$service:latest ./$service
+            docker push ${{ secrets.DOCKERHUB_USERNAME }}/$service:latest
+          else
+            echo "Could not find directory for service $service"
+            exit 1
+          fi
+        done
+
+    - name: Fix routes in docker-compose.yml
+      run: |
+        sed -i 's|build: \./|build: ../|g' ./docker/docker-compose.yml
+        echo "Updated content from docker-compose.yml:"
+        cat ./docker/docker-compose.yml
+
+    - name: Execute Docker Compose
+      run: |
+        docker-compose -f ./docker/docker-compose.yml up -d
+
+  deploy-AWS:
+    needs: [build-and-push]  
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Set permissions for private key aws
+      run: |
+        echo "${{ secrets.AWS_PRIVATE_KEY }}" > key.pem
+        chmod 600 key.pem
+    
+    - name: Pull Docker images
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/create-accesories:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/create-food:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/create-medicines:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/create-toys:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/create-user:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/create-veterinary:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/get_accesories:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/get_food:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/get_toys:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/list-medicines:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/update-accessories:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/update-medicines:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/update-pet-food:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/update-toys:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/view-branches:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/view-schedules:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker pull ${{ secrets.DOCKERHUB_USERNAME }}/view-services:latest'
+        
+    - name: Stop running containers
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop create-accesories-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm create-accesories-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop create-food-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm create-food-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop create-medicines-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm create-medicines-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop create-service-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm create-service-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop create-toys-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm create-toys-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop create-user-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm create-user-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop create-veterinary-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm create-veterinary-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop get_accesories-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm get_accesories-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop get_food-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm get_food-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop get_toys-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm get_toys-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop list-medicines-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm list-medicines-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop update-accessories-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm update-accessories-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop update-medicines-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm update-medicines-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop update-pet-food-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm update-pet-food-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop update-toys-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm update-toys-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop view-branches-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm view-branches-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop view-schedules-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm view-schedules-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker stop view-services-aws || true'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker rm view-services-aws || true'
+
+    - name: Remove old Docker images
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker image prune -f'
+
+    - name: Run new containers
+      run: |
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name create-accesories-aws -p 8070:3000 ${{ secrets.DOCKERHUB_USERNAME }}/create-accesories:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name create-food-aws -p 8071:3000 ${{ secrets.DOCKERHUB_USERNAME }}/create-food:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name create-medicines-aws -p 8072:3000 ${{ secrets.DOCKERHUB_USERNAME }}/create-medicines:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name create-service-aws -p 8073:3000 ${{ secrets.DOCKERHUB_USERNAME }}/create-service:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name create-toys-aws -p 8074:3000 ${{ secrets.DOCKERHUB_USERNAME }}/create-toys:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name create-user-aws -p 8075:3000 ${{ secrets.DOCKERHUB_USERNAME }}/create-user:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name create-veterinary-aws -p 8076:3000 ${{ secrets.DOCKERHUB_USERNAME }}/create-veterinary:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name get_accesories-aws -p 8077:3000 ${{ secrets.DOCKERHUB_USERNAME }}/get_accesories:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name get_food-aws -p 8078:3000 ${{ secrets.DOCKERHUB_USERNAME }}/get_food:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name get_toys-aws -p 8079:3000 ${{ secrets.DOCKERHUB_USERNAME }}/get_toys:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name list-medicines-aws -p 8080:3000 ${{ secrets.DOCKERHUB_USERNAME }}/list-medicines:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name update-accessories-aws -p 8081:3000 ${{ secrets.DOCKERHUB_USERNAME }}/update-accessories:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name update-medicines-aws -p 8082:3000 ${{ secrets.DOCKERHUB_USERNAME }}/update-medicines:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name update-pet-food-aws -p 8083:3000 ${{ secrets.DOCKERHUB_USERNAME }}/update-pet-food:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name update-toys-aws -p 8084:3000 ${{ secrets.DOCKERHUB_USERNAME }}/update-toys:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name view-branches-aws -p 8085:3000 ${{ secrets.DOCKERHUB_USERNAME }}/view-branches:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name view-schedules-aws -p 8086:3000 ${{ secrets.DOCKERHUB_USERNAME }}/view-schedules:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name view-services-aws -p 8087:3000 ${{ secrets.DOCKERHUB_USERNAME }}/view-services:latest'
