@@ -59,7 +59,7 @@ services:
   update-toys:
    build: ../update-toys
    ports:
-     - 8084:3013
+     - 8094:3013
   view-branches:
    build: ../view-branches
    ports:

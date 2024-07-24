@@ -132,7 +132,7 @@ jobs:
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name update-accessories-aws -p 8081:3014 ${{ secrets.DOCKERHUB_USERNAME }}/update-accessories:latest'
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name update-medicines-aws -p 8082:3015 ${{ secrets.DOCKERHUB_USERNAME }}/update-medicines:latest'
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name update-pet-food-aws -p 8083:3012 ${{ secrets.DOCKERHUB_USERNAME }}/update-pet-food:latest'
-        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name update-toys-aws -p 8084:3013 ${{ secrets.DOCKERHUB_USERNAME }}/update-toys:latest'
+        ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name update-toys-aws -p 8094:3013 ${{ secrets.DOCKERHUB_USERNAME }}/update-toys:latest'
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name view-branches-aws -p 8085:3010 ${{ secrets.DOCKERHUB_USERNAME }}/view-branches:latest'
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name view-schedules-aws -p 8086:3011 ${{ secrets.DOCKERHUB_USERNAME }}/view-schedules:latest'
         ssh -o StrictHostKeyChecking=no -i key.pem ec2-user@${{ secrets.EC2_HOST }} 'sudo docker run -d --name view-services-aws -p 8087:3017 ${{ secrets.DOCKERHUB_USERNAME }}/view-services:latest'
